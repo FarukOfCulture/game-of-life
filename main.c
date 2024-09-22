@@ -140,19 +140,16 @@ void game_frame(void) {
   if (IsKeyPressed(KEY_P))
     paused = !paused;
 
-#ifndef WASM
   if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
     matrix_change(GetMouseX() / SCALE_FACTOR, GetMouseY() / SCALE_FACTOR,
                   false);
   }
-#endif
 #ifndef WASM
   if (IsKeyPressed(KEY_S))
     matrix_save("file");
 
   if (IsKeyPressed(KEY_L))
     matrix_load("file");
-
 #endif
 
   BeginDrawing();

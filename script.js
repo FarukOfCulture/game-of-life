@@ -1,5 +1,7 @@
-canvas = document.querySelector('canvas')
-ctx = canvas.getContext("2d")
+'use strict';
+
+let canvas = document.querySelector('canvas')
+let ctx = canvas.getContext("2d")
 
 function make_environment(env) {
 	return new Proxy(env, {
@@ -13,21 +15,46 @@ function make_environment(env) {
 		}
 	});
 }
-w = 0;
+let w = undefined;
+let previous = undefined;
+let left_clicked = false;
+let right_clicked = false;
+let pause_pressed = false;
+let mouseX = undefined
+let mouseY = undefined
+let buffer = undefined;
 
-entryFunction = undefined;
+const getColor = (ptr) => {
+	let arr = new Uint8ClampedArray(buffer, ptr, 4)
+	arr[3] /= 255
+	return "rgba(" + arr.toString() + ")"
+}
+
+const getString = (ptr) => {
+	let size = 0;
+	while (new Uint8ClampedArray(buffer, ptr + size, 1)[0] != 0) {
+		size++;
+	}
+	return (new TextDecoder('ascii')).decode(new Uint8ClampedArray(buffer, ptr, size))
+}
+
+let entryFunction = undefined;
 
 WebAssembly.instantiateStreaming(fetch('./build/game_of_life.wasm'), {
 	"env": make_environment({
 		"SetTraceLogLevel": () => { },
-		"InitWindow": (width, height, title_ptr) => { canvas.width = width; canvas.height = height },
+		"InitWindow": (width, height, title_ptr) => {
+			canvas.width = width;
+			canvas.height = height
+			document.querySelector('title').innerText = getString(title_ptr)
+		},
 		"SetTargetFPS": () => { },
 		"BeginDrawing": () => { },
 		"EndDrawing": () => {
 			pause_pressed = false;
 		},
-		"ClearBackground": (Color) => {
-			ctx.fillStyle = "red";
+		"ClearBackground": (color) => {
+			ctx.fillStyle = getColor(color);
 			ctx.fillRect(0, 0, canvas.width, canvas.height);
 		},
 		"DrawFPS": () => { },
@@ -35,32 +62,48 @@ WebAssembly.instantiateStreaming(fetch('./build/game_of_life.wasm'), {
 			entryFunction = w.instance.exports.__indirect_function_table.get(entry);
 		},
 		"CloseWindow": () => { },
-		"IsMouseButtonDown": () => clicked,
+		"IsMouseButtonDown": (m) => {
+			switch (m) {
+				case 0:
+					return left_clicked;
+				case 1:
+					return right_clicked;
+				default:
+					console.log("We don't handle that")
+			}
+		},
 		"IsKeyPressed": () => pause_pressed,
 		"GetMouseX": () => mouseX - canvas.offsetLeft,
 		"GetMouseY": () => mouseY - canvas.offsetTop,
 		"DrawRectangle": (x, y, w, h, c) => {
-			ctx.fillStyle = "black";
+			ctx.fillStyle = getColor(c);
 			ctx.fillRect(x, y, w, h);
 		}
 
 	})
 }).then((w0) => {
 	w = w0
-	console.log(w0);
-	previous = undefined;
-	clicked = false;
-	pause_pressed = false;
-	mouseX = undefined
-	mouseY = undefined
+	buffer = w.instance.exports.memory.buffer
 
 	canvas.addEventListener('mousedown', (e) => {
-		e.preventDefault()
-
-		clicked = true;
+		switch (e.button) {
+			case 0:
+				left_clicked = true;
+				break;
+			case 2:
+				right_clicked = true;
+				break;
+		}
 	})
-	canvas.addEventListener('mouseup', () => {
-		clicked = false;
+	canvas.addEventListener('mouseup', (e) => {
+		switch (e.button) {
+			case 0:
+				left_clicked = false;
+				break;
+			case 2:
+				right_clicked = false;
+				break;
+		}
 	})
 	window.addEventListener('mousemove', (e) => {
 		mouseX = e.pageX
@@ -80,7 +123,7 @@ WebAssembly.instantiateStreaming(fetch('./build/game_of_life.wasm'), {
 		// 	this.#reset()
 		// 	return;
 		// }
-		dt = (timestamp - this.previous) / 1000.0;
+		// let dt = (timestamp - this.previous) / 1000.0;
 		previous = timestamp;
 		entryFunction();
 		window.requestAnimationFrame(next);
