@@ -50,7 +50,7 @@ void matrix_load(const char *file_name) {
   if (memcmp(scene, &matrix.width, sizeof(matrix.width)) == 0 &&
       memcmp(scene + sizeof(matrix.width), &matrix.height,
              sizeof(matrix.height)) == 0) {
-    memcpy(matrix.scene0, scene + sizeof(matrix.width) + sizeof(matrix.height),
+    memcpy(matrix.scene, scene + sizeof(matrix.width) + sizeof(matrix.height),
            matrix.width * matrix.height);
   }
   UnloadFileData(scene);
