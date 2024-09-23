@@ -1,13 +1,15 @@
 #include "raylib.h"
 #ifndef WASM
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #else
 void js_set_entry(void(void));
+void *memset(void *s, int c, unsigned long n);
 #endif
 
-#define SCREEN_WIDTH 1000
-#define SCREEN_HEIGHT SCREEN_WIDTH
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
 #define FPS 60
 #define EACH_FRAMES 6
 #define SCALE_FACTOR 10
@@ -129,6 +131,23 @@ void matrix_draw(Color color) {
   }
 }
 
+#ifdef WASM
+bool matrix_random(bool *scene);
+#else
+bool matrix_random(bool *scene) {
+  FILE *f = fopen("/dev/urandom", "r");
+  if (!f) {
+    return false;
+  }
+  fread(scene, sizeof(*scene), matrix.width * matrix.height, f);
+  if (ferror(f)) {
+    return false;
+  }
+  fclose(f);
+  return true;
+}
+#endif
+
 void game_frame(void) {
   if (frame == FPS)
     frame -= FPS;
@@ -139,6 +158,12 @@ void game_frame(void) {
   }
   if (IsKeyPressed(KEY_P))
     paused = !paused;
+
+  if (IsKeyPressed(KEY_C))
+    memset(matrix.scene, 0, matrix.width * matrix.height);
+
+  if (IsKeyPressed(KEY_R))
+    matrix_random(matrix.scene);
 
   if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
     matrix_change(GetMouseX() / SCALE_FACTOR, GetMouseY() / SCALE_FACTOR,
@@ -175,6 +200,9 @@ int main(void) {
   SetTraceLogLevel(LOG_WARNING);
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Game Of Life");
   SetTargetFPS(FPS);
+  if (matrix_random(matrix.scene)) {
+    paused = false;
+  }
 
 #ifdef WASM
   js_set_entry(game_frame);

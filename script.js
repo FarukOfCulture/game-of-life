@@ -19,7 +19,7 @@ let w = undefined;
 let previous = undefined;
 let left_clicked = false;
 let right_clicked = false;
-let pause_pressed = false;
+let pressed_keys = [];
 let mouseX = undefined
 let mouseY = undefined
 let buffer = undefined;
@@ -51,7 +51,7 @@ WebAssembly.instantiateStreaming(fetch('./build/game_of_life.wasm'), {
 		"SetTargetFPS": () => { },
 		"BeginDrawing": () => { },
 		"EndDrawing": () => {
-			pause_pressed = false;
+			pressed_keys = [];
 		},
 		"ClearBackground": (color) => {
 			ctx.fillStyle = getColor(color);
@@ -72,12 +72,23 @@ WebAssembly.instantiateStreaming(fetch('./build/game_of_life.wasm'), {
 					console.log("We don't handle that")
 			}
 		},
-		"IsKeyPressed": () => pause_pressed,
+		"IsKeyPressed": (key) => pressed_keys.indexOf(key) != -1,
 		"GetMouseX": () => mouseX - canvas.offsetLeft,
 		"GetMouseY": () => mouseY - canvas.offsetTop,
 		"DrawRectangle": (x, y, w, h, c) => {
 			ctx.fillStyle = getColor(c);
 			ctx.fillRect(x, y, w, h);
+		},
+		"matrix_random": (scene) => {
+			console.log(canvas.width)
+			console.log(canvas.height)
+			let arr = new Uint8ClampedArray(buffer, scene, canvas.width * canvas.height / 100);
+			arr.set(Array.from({ length: canvas.width * canvas.height / 100 }, () => Math.floor(Math.random() + 0.5)))
+			return true;
+		},
+		"memset": (s, c, n) => {
+			let arr = new Uint8ClampedArray(buffer, s, n);
+			arr.fill(c)
 		}
 
 	})
@@ -111,8 +122,7 @@ WebAssembly.instantiateStreaming(fetch('./build/game_of_life.wasm'), {
 	})
 
 	document.addEventListener('keydown', (c) => {
-		if (c.key == "p")
-			pause_pressed = true;
+		pressed_keys.push(c.keyCode)
 	})
 
 	w0.instance.exports.main()
