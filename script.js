@@ -69,7 +69,7 @@ WebAssembly.instantiateStreaming(fetch('./build/game_of_life.wasm'), {
 				case 1:
 					return right_clicked;
 				default:
-					console.log("We don't handle that")
+					console.warning("We don't handle that mouse button")
 			}
 		},
 		"IsKeyPressed": (key) => pressed_keys.indexOf(key) != -1,
@@ -80,8 +80,6 @@ WebAssembly.instantiateStreaming(fetch('./build/game_of_life.wasm'), {
 			ctx.fillRect(x, y, w, h);
 		},
 		"matrix_random": (scene) => {
-			console.log(canvas.width)
-			console.log(canvas.height)
 			let arr = new Uint8ClampedArray(buffer, scene, canvas.width * canvas.height / 100);
 			arr.set(Array.from({ length: canvas.width * canvas.height / 100 }, () => Math.floor(Math.random() + 0.5)))
 			return true;
